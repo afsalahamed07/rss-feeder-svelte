@@ -1,16 +1,17 @@
 <script>
-    import {onMount} from 'svelte';
-    import {Feed} from './domain/Feed';
-    import {fetchFeedData} from './services/ApiService';
-    import Entry from "./Entry.svelte";
+    import { onMount } from 'svelte';
+    import { Feed } from './domain/Feed';
+    import { fetchFeedData } from './services/ApiService';
+    import Entry from "./components/Entry.svelte";
+    import Navbar from "./components/Navbar.svelte";
 
-    let rssUrl = 'https://www.newswire.lk/feed';
+    let rssUrl = 'https://www.wired.com/feed/rss'; // Default RSS URL
     let feed = null;
     let error = null;
 
-    async function fetchFeed() {
+    async function fetchFeed(url = rssUrl) {
         try {
-            const feedData = await fetchFeedData(`http://127.0.0.1:8080/fetch_feed?rss=${encodeURIComponent(rssUrl)}`);
+            const feedData = await fetchFeedData(`http://127.0.0.1:8080/fetch_feed?rss=${encodeURIComponent(url)}`);
             feed = new Feed(feedData);
         } catch (e) {
             error = e.message;
@@ -18,28 +19,28 @@
         }
     }
 
-    onMount(fetchFeed);
+    function handleUpdateFeed(event) {
+        rssUrl = event.detail.rssUrl;
+        fetchFeed(rssUrl);
+    }
+
+    onMount(() => fetchFeed(rssUrl));
 </script>
 
-<main>
-    <h1>RSS Feed Reader</h1>
-    <input type="text" bind:value={rssUrl}/>
-    <button on:click={fetchFeed}>Fetch Feed</button>
-
+<Navbar on:updateFeed={handleUpdateFeed}/>
+<main class="container">
     {#if feed}
-        <div>
-            <h2>{feed.title}</h2>
-            {#each feed.entries as entry}
-                <Entry
-                        title={entry.title},
-                        link={entry.link},
-                        description={entry.description},
-                        publishedDate={entry.publishedDate},
-                        author={entry.author}
-
-                />
-            {/each}
-        </div>
+        {#each feed.entries as entry}
+            <Entry
+                    thumbnail={entry.thumbnail}
+                    title={entry.title}
+                    link={entry.link}
+                    description={entry.description}
+                    publishedDate={entry.publishedDate}
+                    author={entry.author}
+            />
+        {/each}
+    {:else if error}
+        <p class="alert alert-danger">Error: {error}</p>
     {/if}
 </main>
-  
